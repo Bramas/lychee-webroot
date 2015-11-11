@@ -23,5 +23,12 @@ to make the photo accessible, rewrite the url in the following way. With nginx, 
 
 	rewrite ^/uploads/([^\/]+)/(.*)$ /getPhoto.php?type=$1&url=$2;
 
+and add after:
+
+	location /protected-uploads/ {
+		internal;
+		alias   /path/to/lychee/uploads/;
+	}
+
 Now you should see your website as before.
 Try to see a private photo with a direct link while logged out to verify that the photo is not accessible.
