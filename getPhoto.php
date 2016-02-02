@@ -6,14 +6,13 @@
 # * nginx  (use nginx xsendfile header)
 # * apache (use apache xsendfile header)
 
-$sendFileMethod = 'auto';
+$sendFileMethod = 'php';
 
 $uploadsPath    = __DIR__ . '/../../uploads';
 
 
 # ----------------- End of configuration -------------------------
 # -----------------------------------------------------------------
-
 
 $uploadsPath = realpath($uploadsPath);
 
@@ -65,7 +64,7 @@ function getPhoto($database, $type, $photoUrl, $isAdmin)
 	{
 		$query	= Database::prepare(
 			$database, 
-			"SELECT public, album FROM ? WHERE thumbUrl = '?' LIMIT 1", 
+			"SELECT * FROM ? WHERE thumbUrl = '?' LIMIT 1", 
 			array(
 				LYCHEE_TABLE_PHOTOS, 
 				$photoUrl
@@ -75,7 +74,7 @@ function getPhoto($database, $type, $photoUrl, $isAdmin)
 	else {
 		$query	= Database::prepare(
 			$database, 
-			"SELECT public, album FROM ? WHERE url = '?' LIMIT 1", 
+			"SELECT * FROM ? WHERE url = '?' LIMIT 1", 
 			array(
 				LYCHEE_TABLE_PHOTOS, 
 				$photoUrl
@@ -92,20 +91,17 @@ function getPhoto($database, $type, $photoUrl, $isAdmin)
 		# Check if album public
 		$album	= new Album($database, null, null, $photo->album);
 		$agP	= $album->getPublic();
-		$acP	= $album->checkPassword($password);
-		# Album public and password correct
-		if ($agP===true&&$acP===true) return $photo;
-		# Album public, but password incorrect
-		if ($agP===true&&$acP===false) return $photo;
+
+		if ($agP===true) return $photo;
 	}
 
 	# Photo private
 	return false;
 }
 
-
 # get the photo
 $photo = getPhoto($database, $type, $url, $isAdmin);
+
 
 # Check the permission
 if($photo === false)
@@ -120,7 +116,7 @@ if( ! in_array($type, array('big', 'import',  'medium',  'thumb')))
 }
 
 # check if the file exists
-$filepath = $uploadsPath . '/' . $type . '/' . $url;
+$filepath = $uploadsPath . DIRECTORY_SEPARATOR  . $type . DIRECTORY_SEPARATOR  . $url;
 if( ! file_exists($filepath))
 {
 	Log::error($database, 'plugin::webroot', __LINE__,  'The file does not exists: '.$filepath);
