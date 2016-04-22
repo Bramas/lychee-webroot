@@ -86,6 +86,10 @@ function getPhoto($database, $type, $photoUrl, $isAdmin)
 	}
 	$photos	= Database::execute($database, $query, __METHOD__, __LINE__);
 	$photo	= $photos->fetch_object();
+	if ($photo === null) {
+		http_response_code(404);
+		exit('Photo not found');
+	}
 	# Check if public
 	if ($isAdmin=== true||$photo->public==='1') {
 		# Photo public
