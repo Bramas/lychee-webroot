@@ -54,6 +54,13 @@ $database = Database::get();
 # return the photo if the current user has acces to it or false otherwise (taken from php/module/photo.php)
 function getPhoto($database, $type, $photoUrl, $isAdmin)
 {
+	$retinaSuffix = '@2x';
+	$urlParts = explode('.', $photoUrl);
+	$dbUrl = $photoUrl;
+	# If the filename ends in $retinaSuffix, remove it for the database query
+	if (substr_compare($urlParts[0], $retinaSuffix, strlen($urlParts[0])-strlen($retinaSuffix), strlen($retinaSuffix)) === 0) {
+		$dbUrl = substr($urlParts[0], 0, -strlen($retinaSuffix)) . '.' . $urlParts[1];
+	}
 
 	# Get photo
 	if($type == 'thumb')
@@ -63,7 +70,7 @@ function getPhoto($database, $type, $photoUrl, $isAdmin)
 			"SELECT * FROM ? WHERE thumbUrl = '?' LIMIT 1", 
 			array(
 				LYCHEE_TABLE_PHOTOS, 
-				$photoUrl
+				$dbUrl
 			)
 		);
 	}
@@ -73,7 +80,7 @@ function getPhoto($database, $type, $photoUrl, $isAdmin)
 			"SELECT * FROM ? WHERE url = '?' LIMIT 1", 
 			array(
 				LYCHEE_TABLE_PHOTOS, 
-				$photoUrl
+				$dbUrl
 			)
 		);
 	}
