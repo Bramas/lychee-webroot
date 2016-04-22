@@ -1,4 +1,5 @@
 <?php
+namespace Lychee;
 
 # must be one of the following value:
 # * auto   (automatically choose the best option)
@@ -25,35 +26,30 @@ $type = $_GET['type'];
 $url  = $_GET['url'];
 
 
-# Usual startup (taken from php/api.php file)
-session_start();
-date_default_timezone_set('UTC');
-# Load required files
+# Usual startup (taken from php/index.php file)
+
+use Lychee\Modules\Album;
+use Lychee\Modules\Config;
+use Lychee\Modules\Settings;
+use Lychee\Modules\Database;
+
 require(__DIR__ . '/../../php/define.php');
 require(__DIR__ . '/../../php/autoload.php');
-require(__DIR__ . '/../../php/modules/misc.php');
 
-if (file_exists(LYCHEE_CONFIG_FILE)) require(LYCHEE_CONFIG_FILE);
-else {
+session_start();
+date_default_timezone_set('UTC');
+
+if (Config::exists()===false) {
 	exit('Error: no config file.');
 }
-# Define the table prefix
-if (!isset($dbTablePrefix)) $dbTablePrefix = '';
-defineTablePrefix($dbTablePrefix);
-# Connect to database
-$database = Database::connect($dbHost, $dbUser, $dbPassword, $dbName);
-
-# Load settings
-$settings = new Settings($database);
-$settings = $settings->get();
-
 $isAdmin = false;
 if ((isset($_SESSION['login'])&&$_SESSION['login']===true)&&
-	(isset($_SESSION['identifier'])&&$_SESSION['identifier']===$settings['identifier'])) {
+	(isset($_SESSION['identifier'])&&$_SESSION['identifier']===Settings::get()['identifier'])) {
 	$isAdmin = true;
 }
 # end of startup
 
+$database = Database::get();
 
 # return the photo if the current user has acces to it or false otherwise (taken from php/module/photo.php)
 function getPhoto($database, $type, $photoUrl, $isAdmin)
@@ -81,7 +77,7 @@ function getPhoto($database, $type, $photoUrl, $isAdmin)
 			)
 		);
 	}
-	$photos	= $database->query($query);
+	$photos	= Database::execute($database, $query, __METHOD__, __LINE__);
 	$photo	= $photos->fetch_object();
 	# Check if public
 	if ($isAdmin=== true||$photo->public==='1') {
