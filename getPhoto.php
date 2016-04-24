@@ -1,4 +1,5 @@
 <?php
+namespace Lychee;
 
 # must be one of the following value:
 # * auto   (automatically choose the best option)
@@ -25,39 +26,41 @@ $type = $_GET['type'];
 $url  = $_GET['url'];
 
 
-# Usual startup (taken from php/api.php file)
-session_start();
-date_default_timezone_set('UTC');
-# Load required files
+# Usual startup (taken from php/index.php file)
+
+use Lychee\Modules\Album;
+use Lychee\Modules\Config;
+use Lychee\Modules\Settings;
+use Lychee\Modules\Database;
+
 require(__DIR__ . '/../../php/define.php');
 require(__DIR__ . '/../../php/autoload.php');
-require(__DIR__ . '/../../php/modules/misc.php');
 
-if (file_exists(LYCHEE_CONFIG_FILE)) require(LYCHEE_CONFIG_FILE);
-else {
+session_start();
+date_default_timezone_set('UTC');
+
+if (Config::exists()===false) {
 	exit('Error: no config file.');
 }
-# Define the table prefix
-if (!isset($dbTablePrefix)) $dbTablePrefix = '';
-defineTablePrefix($dbTablePrefix);
-# Connect to database
-$database = Database::connect($dbHost, $dbUser, $dbPassword, $dbName);
-
-# Load settings
-$settings = new Settings($database);
-$settings = $settings->get();
-
 $isAdmin = false;
 if ((isset($_SESSION['login'])&&$_SESSION['login']===true)&&
-	(isset($_SESSION['identifier'])&&$_SESSION['identifier']===$settings['identifier'])) {
+	(isset($_SESSION['identifier'])&&$_SESSION['identifier']===Settings::get()['identifier'])) {
 	$isAdmin = true;
 }
 # end of startup
 
+$database = Database::get();
 
 # return the photo if the current user has acces to it or false otherwise (taken from php/module/photo.php)
 function getPhoto($database, $type, $photoUrl, $isAdmin)
 {
+	$retinaSuffix = '@2x';
+	$urlParts = explode('.', $photoUrl);
+	$dbUrl = $photoUrl;
+	# If the filename ends in $retinaSuffix, remove it for the database query
+	if (substr_compare($urlParts[0], $retinaSuffix, strlen($urlParts[0])-strlen($retinaSuffix), strlen($retinaSuffix)) === 0) {
+		$dbUrl = substr($urlParts[0], 0, -strlen($retinaSuffix)) . '.' . $urlParts[1];
+	}
 
 	# Get photo
 	if($type == 'thumb')
@@ -67,7 +70,7 @@ function getPhoto($database, $type, $photoUrl, $isAdmin)
 			"SELECT * FROM ? WHERE thumbUrl = '?' LIMIT 1", 
 			array(
 				LYCHEE_TABLE_PHOTOS, 
-				$photoUrl
+				$dbUrl
 			)
 		);
 	}
@@ -77,12 +80,16 @@ function getPhoto($database, $type, $photoUrl, $isAdmin)
 			"SELECT * FROM ? WHERE url = '?' LIMIT 1", 
 			array(
 				LYCHEE_TABLE_PHOTOS, 
-				$photoUrl
+				$dbUrl
 			)
 		);
 	}
-	$photos	= $database->query($query);
+	$photos	= Database::execute($database, $query, __METHOD__, __LINE__);
 	$photo	= $photos->fetch_object();
+	if ($photo === null) {
+		http_response_code(404);
+		exit('Photo not found');
+	}
 	# Check if public
 	if ($isAdmin=== true||$photo->public==='1') {
 		# Photo public
