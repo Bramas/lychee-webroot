@@ -117,7 +117,7 @@ if($photo === false)
 }
 
 # Check the type of the request
-if( ! in_array($type, array('big', 'import',  'medium',  'thumb')))
+if( ! in_array($type, array('big', 'import',  'medium', 'small', 'thumb')))
 {
 	exit('Error: type not recognized');
 }
