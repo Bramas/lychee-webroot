@@ -96,7 +96,7 @@ function getPhoto($database, $type, $photoUrl, $isAdmin)
 		return $photo;
 	} else {
 		# Check if album public
-		$album	= new Album($database, null, null, $photo->album);
+		$album	= new Album($photo->album);
 		$agP	= $album->getPublic();
 
 		if ($agP===true) return $photo;
